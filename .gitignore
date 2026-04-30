@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__Python/
+venv/
+.venv/
+*.egg-info/
+
+# Base de datos (NO subir datos reales)
+*.db
+*.sqlite
+*.sqlite3
+
+# Variables de entorno (NUNCA subir)
+.env
+backend/.env
+frontend/.env*
+!.env.example
+!.env.development.example
+
+# Uploads y archivos generados
+backend/static/uploads/
+backend/static/photos/
+backend/static/temp/
+backend/static/logos/
+# NO ignorar: frontend/public/ (imágenes necesarias)
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+node_modules/
+
+# Logs
+*.log
+backend/backend.log
+backend/server.log
+/tmp/uocra_*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+.docker.env

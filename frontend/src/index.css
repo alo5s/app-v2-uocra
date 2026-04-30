@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Fix autofill inputs to be white */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+    -webkit-text-fill-color: #1f2937 !important;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(209, 213, 219);
+    border-radius: 3px;
+  }
+}
+
+/* Only custom component styles - minimal */
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-base rounded-lg font-medium transition-colors disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-[#1e3c72] text-white hover:bg-[#2a5298];
+  }
+  .btn-secondary {
+    @apply bg-gray-500 text-white hover:bg-gray-600;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  .btn-outline {
+    @apply border-2 border-[#1e3c72] text-[#1e3c72] hover:bg-[#1e3c72] hover:text-white;
+  }
+  .btn-ghost {
+    @apply text-gray-600 hover:bg-gray-100;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  }
+  .card-hover {
+    @apply hover:shadow-md transition-shadow;
+  }
+
+  /* Forms */
+  .input {
+    @apply w-full px-4 py-3 text-base rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e3c72]/50 focus:border-[#1e3c72];
+  }
+
+  /* Spinner */
+  .spinner {
+    @apply w-8 h-8 border-4 border-[#1e3c72] border-t-transparent rounded-full animate-spin;
+  }
+}
+
+/* Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Icon toggle animation */
+@keyframes toggleIcon {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.icon-man {
+  animation: toggleIcon 4s infinite;
+}
+.icon-woman {
+  animation: toggleIcon 4s infinite;
+  animation-delay: 2s;
+}
+
+/* No more custom CSS needed - Tailwind handles the rest! */
