@@ -16,16 +16,9 @@ from app.schemas.schemas import (
     EmpresaCreate, EmpresaUpdate, EmpresaResponse,
     CVEmpresaCreate, CVEmpresaUpdate, CVEmpresaResponse, MessageResponse
 )
+from app.utils.validators import sanitize_input, validate_file_size, allowed_file
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
-
-
-def sanitize_input(text: Optional[str]) -> Optional[str]:
-    if not text:
-        return None
-    import re
-    text = re.sub(r'[<>]', '', text)
-    return text.strip()
 
 
 @router.get("", response_model=list[EmpresaResponse])
@@ -203,7 +196,8 @@ def get_cvs_de_empresa(
         cv_empresas_query = cv_empresas_query.filter(CVEmpresa.activo == False)
     
     if buscar:
-        cv_empresas_query = cv_empresas_query.join(CV).filter(CV.nombre.ilike(f'%{buscar}%'))
+        search = f"%{buscar}%"
+        cv_empresas_query = cv_empresas_query.join(CV).filter(CV.nombre.ilike(search))
     
     cv_empresas_list = cv_empresas_query.all()
     

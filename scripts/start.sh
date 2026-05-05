@@ -198,23 +198,46 @@ fi
 # Actualizar backend/.env
 # ─────────────────────────────────────
 
+# ─────────────────────────────
+# Actualizar backend/.env - TODAS las variables
+# ─────────────────────────────
+
+update_env_var() {
+  local var=$1
+  local value=$2
+  local file="$ROOT_DIR/backend/.env"
+  
+  # Escapar caracteres especiales para sed
+  value_escaped=$(echo "$value" | sed 's/[\/&]/\\&/g')
+    
+  if grep -q "^$var=" "$file" 2>/dev/null; then
+    sed -i "s|^$var=.*|$var=$value_escaped|" "$file"
+  else
+    echo "$var=$value_escaped" >> "$file"
+  fi
+}
+
 if [ "$MODE" = "tunnel" ]; then
   BASE_URL="$TUNNEL_URL"
+  FRONTEND_URL="$TUNNEL_URL"
   ALLOWED_ORIGINS="http://localhost:5173,http://$IP:5173,$TUNNEL_URL"
 else
   BASE_URL="http://$IP:5173"
+  FRONTEND_URL="http://$IP:5173"
   ALLOWED_ORIGINS="http://localhost:5173,http://$IP:5173"
 fi
 
-grep -q "^BASE_URL=" "$ROOT_DIR/backend/.env" && \
-  sed -i "s|^BASE_URL=.*|BASE_URL=$BASE_URL|" "$ROOT_DIR/backend/.env" || \
-  echo "BASE_URL=$BASE_URL" >> "$ROOT_DIR/backend/.env"
+update_env_var "BASE_URL" "$BASE_URL"
+update_env_var "FRONTEND_URL" "$FRONTEND_URL"
+update_env_var "ALLOWED_ORIGINS" "$ALLOWED_ORIGINS"
 
-grep -q "^ALLOWED_ORIGINS=" "$ROOT_DIR/backend/.env" && \
-  sed -i "s|^ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=$ALLOWED_ORIGINS|" "$ROOT_DIR/backend/.env" || \
-  echo "ALLOWED_ORIGINS=$ALLOWED_ORIGINS" >> "$ROOT_DIR/backend/.env"
+# Frontend .env.development
+cat > "$ROOT_DIR/frontend/.env.development" << EOF
+VITE_BACKEND_URL=http://127.0.0.1:8000
+VITE_API_URL=/api
+EOF
 
-# forzar reload backend
+# Forzar reload backend (uvicorn --reload detecta el cambio)
 touch "$ROOT_DIR/backend/app/main.py"
 sleep 2
 
@@ -226,38 +249,44 @@ clear
 echo ""
 
 if [ "$MODE" = "tunnel" ]; then
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${GREEN}🌐 MODO: TUNNEL PÚBLICO (Cloudflare)${NC}"
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
   echo "Backend local:   http://$IP:8000"
   echo "Frontend local:  http://$IP:5173"
   echo "API docs:        http://$IP:8000/docs"
   echo ""
   echo -e "${GREEN}Tunnel público:${NC} $TUNNEL_URL"
-  echo -e "${GREEN}QR apunta a:${NC} $TUNNEL_URL/bienvenido"
+  echo -e "${GREEN}QR PDF apunta a:${NC} $TUNNEL_URL/api/public/bienvenido/pdf"
+  echo -e "${GREEN}QR redirect apunta a:${NC} $TUNNEL_URL/subir-cv"
   echo ""
   echo -e "${GREEN}📱 Accesible desde cualquier dispositivo${NC}"
   echo -e "${GREEN}(no necesita misma WiFi)${NC}"
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 else
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${YELLOW}📶 MODO: RED LOCAL WiFi${NC}"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
   echo "Backend:   http://$IP:8000"
   echo "Frontend:  http://$IP:5173"
   echo "API docs:  http://$IP:8000/docs"
   echo ""
-  echo -e "${YELLOW}QR:${NC} http://$IP:5173/bienvenido"
+  echo -e "${YELLOW}QR PDF:${NC} http://$IP:8000/api/public/bienvenido/pdf"
+  echo -e "${YELLOW}QR redirect:${NC} http://$IP:5173/subir-cv"
   echo ""
   echo -e "${YELLOW}📱 Solo misma red WiFi${NC}"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 fi
 
 echo ""
-echo -e "${YELLOW}🔑 Usuario:${NC} admin"
-echo -e "${YELLOW}🔑 Contraseña:${NC} admin123"
+# Leer credenciales REALES del .env
+ADMIN_USER=$(grep "^ADMIN_USERNAME=" "$ROOT_DIR/backend/.env" 2>/dev/null | cut -d= -f2)
+ADMIN_PASS=$(grep "^ADMIN_PASSWORD=" "$ROOT_DIR/backend/.env" 2>/dev/null | cut -d= -f2)
+
+echo -e "${YELLOW}🔑 Usuario:${NC} ${ADMIN_USER:-admin}"
+echo -e "${YELLOW}🔑 Contraseña:${NC} ${ADMIN_PASS:-[configurada en .env]}"
 echo ""
 echo -e "${RED}Ctrl + C para detener todo${NC}"
 echo ""

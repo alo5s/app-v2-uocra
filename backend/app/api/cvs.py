@@ -27,6 +27,7 @@ from app.schemas.schemas import (
     CVCreate, CVUpdate, CVResponse, CVPublicCreate, MessageResponse
 )
 from app.utils.pdf_extractor import extraer_datos_cv, guardar_pdf_temp, limpiar_temp
+from app.utils.validators import sanitize_input, validate_file_size, allowed_file, validate_pdf_content
 
 router = APIRouter(prefix="/cvs", tags=["cvs"])
 
@@ -84,23 +85,6 @@ def mover_pdf_a_uploads(temp_path: str, dni: str = '') -> str:
     new_path = os.path.join(carpeta, new_filename)
     shutil.move(temp_path, new_path)
     return new_path
-
-
-def allowed_file(filename: str) -> bool:
-    if not filename or '.' not in filename:
-        return False
-    ext = filename.lower().split('.')[-1]
-    return ext in ['pdf', 'jpg', 'jpeg', 'png']
-
-
-def convertir_imagen_a_pdf(imagen_path: str, output_path: str) -> str:
-    """Convierte una imagen JPG/PNG a PDF"""
-    from PIL import Image
-    imagen = Image.open(imagen_path)
-    if imagen.mode in ('RGBA', 'LA', 'P'):
-        imagen = imagen.convert('RGB')
-    imagen.save(output_path, 'PDF', resolution=100.0, quality=95)
-    return output_path
 
 
 def procesar_archivo_a_pdf(file: UploadFile, temp_path: str, dni: str, timestamp: str) -> str:
@@ -187,16 +171,18 @@ def get_cvs(
     query = db.query(CV).filter(CV.estado == estado)
     
     if nombre:
+        search = f"%{nombre}%"
         query = query.filter(
             or_(
-                CV.nombre.ilike(f'%{nombre}%'),
-                CV.dni.ilike(f'%{nombre}%')
+                CV.nombre.ilike(search),
+                CV.dni.ilike(search)
             )
         )
     if categoria:
         query = query.filter(CV.area == categoria)
     if oficio:
-        query = query.filter(CV.oficios.ilike(f'%{oficio}%'))
+        search_oficio = f"%{oficio}%"
+        query = query.filter(CV.oficios.ilike(search_oficio))
     if genero:
         query = query.filter(CV.genero == genero)
     if afiliado:
@@ -266,6 +252,7 @@ def create_cv(
     filename = None
     
     if file and allowed_file(file.filename):
+        validate_file_size(file, settings.MAX_FILE_SIZE)
         temp_dir = get_temp_path()
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
         safe_dni = sanitize_input(dni) or 'cv'
@@ -287,6 +274,11 @@ def create_cv(
         
         with open(foto_path, 'wb') as f:
             shutil.copyfileobj(foto.file, f)
+        
+        # Validar que sea una imagen real
+        if not validate_image_content(foto_path):
+            os.remove(foto_path)
+            raise HTTPException(status_code=400, detail="El archivo de foto no es una imagen válida")
         
         foto_final = f"static/photos/{foto_filename}"
     
@@ -414,9 +406,17 @@ def update_cv(
         with open(foto_path, 'wb') as f:
             shutil.copyfileobj(foto.file, f)
         
-        if cv.foto and os.path.exists(cv.foto.replace('static/', 'backend/')):
+        # Validar que sea una imagen real
+        if not validate_image_content(foto_path):
+            os.remove(foto_path)
+            raise HTTPException(status_code=400, detail="El archivo de foto no es una imagen válida")
+        
+        # Eliminar foto anterior si existe
+        if cv.foto and os.path.exists(foto_path.replace('static/photos', photos_folder)):
             try:
-                os.remove(cv.foto.replace('static/', 'backend/'))
+                old_path = os.path.join(photos_folder, os.path.basename(cv.foto))
+                if os.path.exists(old_path):
+                    os.remove(old_path)
             except:
                 pass
         
@@ -448,12 +448,18 @@ def delete_cv(
         raise HTTPException(status_code=404, detail="CV no encontrado")
     
     nombre_cv = cv.nombre
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.join(base_dir, '..', '..')
     
-    if cv.path and os.path.exists(cv.path):
-        os.remove(cv.path)
-    if cv.foto and os.path.exists(cv.foto):
+    if cv.path:
+        path = os.path.join(base_dir, cv.path)
+        if os.path.exists(path):
+            os.remove(path)
+    if cv.foto:
+        foto_path = os.path.join(base_dir, cv.foto)
         try:
-            os.remove(cv.foto)
+            if os.path.exists(foto_path):
+                os.remove(foto_path)
         except:
             pass
     
@@ -484,14 +490,18 @@ def aprobar_cv(
         cv_anterior = db.query(CV).filter(CV.id == cv.cv_anterior_id).first()
         if cv_anterior:
             # Eliminar archivos del CV anterior
-            if cv_anterior.path and os.path.exists(cv_anterior.path.replace('static/', 'backend/')):
+            if cv_anterior.path:
+                old_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', cv_anterior.path)
                 try:
-                    os.remove(cv_anterior.path.replace('static/', 'backend/'))
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
                 except:
                     pass
-            if cv_anterior.foto and os.path.exists(cv_anterior.foto.replace('static/', 'backend/')):
+            if cv_anterior.foto:
+                old_foto = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', cv_anterior.foto)
                 try:
-                    os.remove(cv_anterior.foto.replace('static/', 'backend/'))
+                    if os.path.exists(old_foto):
+                        os.remove(old_foto)
                 except:
                     pass
             db.delete(cv_anterior)
@@ -568,12 +578,18 @@ def crear_cv_publico(
             es_actualizacion = True
     
     if file and allowed_file(file.filename):
+        validate_file_size(file, settings.MAX_FILE_SIZE)
         temp_dir = get_temp_path()
         safe_dni = sanitize_input(dni) or 'cv'
         pdf_filename = f"{safe_dni}_{timestamp}.pdf"
         pdf_path = os.path.join(temp_dir, pdf_filename)
         
         pdf_path = procesar_archivo_a_pdf(file, pdf_path, safe_dni, timestamp)
+        
+        # Validar que sea un PDF real
+        if not validate_pdf_content(pdf_path):
+            os.remove(pdf_path)
+            raise HTTPException(status_code=400, detail="El archivo no es un PDF válido")
         
         final_path = mover_pdf_a_uploads(pdf_path, safe_dni)
     

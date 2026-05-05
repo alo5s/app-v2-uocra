@@ -103,8 +103,22 @@ OFICIOS = {
     "Soportista": ["soportista"],
     "Topógrafo": ["topografo", "topografía"],
     "Engrasador": ["engrasador"],
-    "Cepillador": ["cepillador"],
+     "Cepillador": ["cepillador"],
+     "Maestranza": ["maestranza", "maestranza", "cuadrilla", "brigada", "tareas generales"],
+     "Peón": ["peón", "peon", "peón de obra", "peon de obra", "jornalero", "jornal"],
+     "Peón Calificado": ["peón calificado", "peon calificado", "oficial peón"],
+     "Medio Oficial": ["medio oficial", "semioficial"],
+     "Oficial": ["oficial", "oficial de obra"],
+     "Capataz": ["capataz", "capataz de obra", "jefe de cuadrilla"],
+     "Jefe de Obra": ["jefe de obra", "maestro mayor", "residente de obra"],
+     "Ayudante Albañil": ["ayudante albañil", "ayudante de albañil", "peón albañil", "peon albañil"],
+     "Ayudante Electricista": ["ayudante electricista", "ayudante de electricista"],
+     "Ayudante Plomero": ["ayudante plomero", "ayudante de plomero"],
+     "Ayudante Carpintero": ["ayudante carpintero", "ayudante de carpintero"],
+     "Tareas Generales": ["tarea general", "tareas generales", "peón general", "peon general", "labores generales"],
+     "Yesero": ["yesero", "yesera"],
 }
+
 
 
 def get_all_oficios():

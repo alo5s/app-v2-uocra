@@ -83,3 +83,43 @@ CLOUDFLARED_CHECK_INTERVAL=30
 - Cambiar `ADMIN_PASSWORD` por una contraseña segura
 - No usar valores por defecto en producción
 - Mantener `DEBUG=false` en producción
+
+
+```env
+# Security - Generated with openssl rand -hex 32
+SECRET_KEY=5f16fadde8e7913ed66fb03d80b60c1aa9664f0331c23181d8ecfaf619427302
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# Admin - CHANGE THIS PASSWORD IN PRODUCTION
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=Uocra2024!Seguro
+
+# Debug - Set to false in production
+DEBUG=true
+
+# Database - SQLite for development, PostgreSQL for production
+# For PostgreSQL: postgresql://user:password@localhost:5432/uocra
+DATABASE_URL=sqlite:///./uocra.db
+
+# Pool settings (only for PostgreSQL)
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=10
+
+# CORS - Allowed origins (comma-separated, no spaces)
+ALLOWED_ORIGINS=http://localhost:5173,http://192.168.0.103:5173,https://lone-passengers-phil-numerous.trycloudflare.com
+
+# URLs
+BASE_URL=https://lone-passengers-phil-numerous.trycloudflare.com
+FRONTEND_URL=https://lone-passengers-phil-numerous.trycloudflare.com
+
+# Cloudflared
+CLOUDFLARED_CHECK_INTERVAL=30
+
+# File uploads
+MAX_FILE_SIZE=16777216
+UPLOAD_FOLDER=static/uploads
+PHOTOS_FOLDER=static/photos
+LOGOS_FOLDER=static/logos
+```
+

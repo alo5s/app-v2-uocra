@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
           target: backendUrl,
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => path.replace(/^\/bienvenido\/pdf/, '/api/public/bienvenido/pdf')
         }
       }
     }

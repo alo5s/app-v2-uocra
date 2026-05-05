@@ -16,10 +16,13 @@ const apiPublic = axios.create({
   },
 });
 
+// Interceptor SOLO para 'api' (no para apiPublic)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Solo agregar token si es la instancia 'api' (no apiPublic)
+  // apiPublic usa el mismo baseURL pero es una instancia diferente
+  if (token && config.headers['Authorization'] === undefined) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
 });
@@ -75,9 +78,9 @@ export const cvsAPI = {
   createPublic: (data) => apiPublic.post('/cvs/public', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  generarToken: () => apiPublic.post('/cvs/generar-token'),
-  validarToken: (token) => apiPublic.get('/cvs/validar-token', { params: { token } }),
-  usarToken: (token, cvId) => apiPublic.post('/cvs/usar-token', null, { params: { token, cv_id: cvId } }),
+  generarToken: () => apiPublic.post('/public/generar-token'),
+  validarToken: (token) => apiPublic.get('/public/validar-token', { params: { token } }),
+  usarToken: (token, cvId) => apiPublic.post('/public/usar-token', null, { params: { token, cv_id: cvId } }),
   extraerDatosPDF: (file) => {
     const formData = new FormData();
     formData.append('file', file);

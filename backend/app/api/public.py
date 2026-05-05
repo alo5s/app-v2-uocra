@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse, RedirectResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 import secrets
 import io
@@ -17,10 +19,15 @@ from reportlab.lib.utils import ImageReader
 
 router = APIRouter(tags=["public"])
 
+# Rate limiting: 5 requests per minute per IP para endpoints públicos
+limiter = Limiter(key_func=get_remote_address)
+
 @router.get("/bienvenido/pdf")
 def generar_bienvenido_pdf(db: Session = Depends(get_db)):
-    base_url = settings.BASE_URL
-    qr_url = f"{base_url}/subir-cv" if base_url else "http://192.168.0.104:5174/subir-cv"
+    # Usar BASE_URL (seteado por start.sh), fallback a FRONTEND_URL
+    base_url = settings.BASE_URL or settings.FRONTEND_URL or "http://localhost:5173"
+    # QR apunta a /api/public/token (endpoint en backend)
+    qr_url = f"{base_url}/api/public/token" if base_url else "http://localhost:8000/api/public/token"
     
     buffer = io.BytesIO()
     page_width, page_height = A4
@@ -112,8 +119,33 @@ def generar_bienvenido_pdf(db: Session = Depends(get_db)):
         headers={'Content-Disposition': 'attachment; filename=uocra_bienvenida.pdf'}
     )
 
-@router.post("/cvs/generar-token")
-def generar_qr_token(db: Session = Depends(get_db)):
+@router.get("/token")
+@limiter.limit("5/minute")
+def generar_token_redirect(request: Request, db: Session = Depends(get_db)):
+    # Generar token único
+    token_str = secrets.token_urlsafe(16)
+    
+    qr_token = QRToken(
+        token=token_str,
+        usado=False,
+        ip_address="public"
+    )
+    db.add(qr_token)
+    db.commit()
+    db.refresh(qr_token)
+    
+    # Redirigir a frontend /subir-cv?token=XXX
+    from fastapi.responses import RedirectResponse
+    # Si hay BASE_URL (tunnel), usar esa para el frontend
+    if settings.BASE_URL:
+        frontend_url = settings.BASE_URL.replace(':8000', ':5173').replace('/api', '')
+    else:
+        frontend_url = settings.FRONTEND_URL or "http://localhost:5173"
+    return RedirectResponse(url=f"{frontend_url}/subir-cv?token={token_str}", status_code=302)
+
+@router.post("/generar-token")
+@limiter.limit("5/minute")
+def generar_qr_token(request: Request, db: Session = Depends(get_db)):
     token_str = secrets.token_urlsafe(16)
     
     qr_token = QRToken(
@@ -127,7 +159,7 @@ def generar_qr_token(db: Session = Depends(get_db)):
     
     return {"token": token_str, "success": True}
 
-@router.get("/cvs/validar-token")
+@router.get("/validar-token")
 def validar_qr_token(token: str = None, db: Session = Depends(get_db)):
     if not token:
         return {"valido": False, "mensaje": "Token requerido"}
@@ -140,13 +172,13 @@ def validar_qr_token(token: str = None, db: Session = Depends(get_db)):
     if qr_token.usado:
         return {"valido": False, "mensaje": "Este QR ya fue usado"}
     
-    ten_minutes_ago = datetime.now() - timedelta(minutes=10)
-    if qr_token.created_at < ten_minutes_ago:
+    thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
+    if qr_token.created_at < thirty_minutes_ago:
         return {"valido": False, "mensaje": "Este QR ha expirado. Escanee un nuevo QR para reenviar"}
     
     return {"valido": True, "mensaje": "Token válido", "created_at": str(qr_token.created_at)}
 
-@router.post("/cvs/usar-token")
+@router.post("/usar-token")
 def usar_qr_token(token: str = None, cv_id: int = None, db: Session = Depends(get_db)):
     qr_token = db.query(QRToken).filter(QRToken.token == token).first()
     
@@ -156,8 +188,8 @@ def usar_qr_token(token: str = None, cv_id: int = None, db: Session = Depends(ge
     if qr_token.usado:
         return {"success": False, "mensaje": "Este QR ya fue usado"}
     
-    ten_minutes_ago = datetime.now() - timedelta(minutes=10)
-    if qr_token.created_at < ten_minutes_ago:
+    thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
+    if qr_token.created_at < thirty_minutes_ago:
         return {"success": False, "mensaje": "Este QR ha expirado. Escanee un nuevo QR para reenviar"}
     
     qr_token.usado = True

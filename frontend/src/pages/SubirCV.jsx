@@ -122,10 +122,12 @@ const { user: authUser } = useAuthStore();
 
   const fetchOficios = async () => {
     try {
-      const res = await empresasAPI.getAll();
+      const res = await cvsAPI.getOficios();
+      setOficios(res.data || []);
+    } catch (e) {
+      console.error('Error cargando oficios:', e);
+      // Fallback con lista básica
       setOficios(['Albañil', 'Pintor', 'Electricista', 'Plomero', 'Carpintero', 'Herrero', 'Soldador', 'Mecánico', 'Gasista', 'Jardinero', 'Técnico HVAC', 'Drywall', 'Azulejista']);
-    } catch (error) {
-      setOficios(['Albañil', 'Pintor', 'Electricista', 'Plomero', 'Carpintero', 'Herrero', 'Soldador', 'Mecánico']);
     }
   };
 
@@ -304,10 +306,15 @@ const { user: authUser } = useAuthStore();
           <h1 className="text-2xl font-bold mb-2">Bienvenido a la Bolsa de Trabajo</h1>
           <p className="text-lg opacity-90">Sube tu CV y forma parte de nuestra base de datos</p>
           {isAdmin && (
-            <span className="inline-block mt-3 px-4 py-1 bg-white/20 rounded-full text-sm font-semibold">
-              <i className="bi bi-shield-fill-check mr-1"></i> Modo Administrador
-            </span>
-          )}
+             <span className="inline-block mt-3 px-4 py-1 bg-white/20 rounded-full text-sm font-semibold">
+               <i className="bi bi-shield-fill-check mr-1"></i> Modo Administrador
+             </span>
+           )}
+           {!isAdmin && tokenValido && tokenValido !== 'admin' && (
+             <span className="inline-block mt-3 px-4 py-1 bg-green-500/30 rounded-full text-sm font-semibold">
+               <i className="bi bi-person mr-1"></i> Modo Invitado
+             </span>
+           )}
         </div>
 
         <div className="p-10">

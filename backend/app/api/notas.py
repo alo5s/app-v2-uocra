@@ -11,16 +11,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, Nota, CV, Empresa
 from app.schemas.schemas import NotaCreate, NotaUpdate, NotaResponse, MessageResponse
+from app.utils.validators import sanitize_input, validate_file_size, allowed_file, validate_pdf_content
 
 router = APIRouter(prefix="/notas", tags=["notas"])
-
-
-def sanitize_input(text: Optional[str]) -> Optional[str]:
-    if not text:
-        return None
-    import re
-    text = re.sub(r'[<>]', '', text)
-    return text.strip()
 
 
 @router.get("", response_model=list[NotaResponse])
@@ -46,7 +39,8 @@ def get_notas(
         query = query.filter(Nota.cv_id == None, Nota.empresa_id == None)
     
     if buscar:
-        query = query.filter(Nota.titulo.ilike(f'%{buscar}%'))
+        search = f"%{buscar}%"
+        query = query.filter(Nota.titulo.ilike(search))
     
     notas = query.all()
     return [NotaResponse.model_validate(n) for n in notas]
@@ -164,9 +158,11 @@ def delete_nota(
     if not nota:
         raise HTTPException(status_code=404, detail="Nota no encontrada")
     
-    if nota.archivo and os.path.exists(nota.archivo):
+    if nota.archivo:
+        archivo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', nota.archivo)
         try:
-            os.remove(nota.archivo)
+            if os.path.exists(archivo_path):
+                os.remove(archivo_path)
         except:
             pass
     
