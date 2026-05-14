@@ -165,33 +165,41 @@ if [ "$FRONTEND_OK" = false ]; then
 fi
 
 # ─────────────────────────────────────
-# Cloudflare Tunnel
+# Cloudflare Tunnel (Dominio personalizado)
 # ─────────────────────────────────────
 
+# Copiar config de cloudflared al proyecto si no existe
+if [ ! -f "$ROOT_DIR/.cloudflared/config.yml" ]; then
+    mkdir -p "$ROOT_DIR/.cloudflared"
+    cp ~/.cloudflared/config.yml "$ROOT_DIR/.cloudflared/config.yml" 2>/dev/null || true
+    cp ~/.cloudflared/*.json "$ROOT_DIR/.cloudflared/" 2>/dev/null || true
+fi
+
+# Asegurar que el archivo de credenciales sea legible
+if [ -f "/home/alos/.cloudflared/config.yml" ]; then
+    CLOUDFLARED_CONFIG="--config /home/alos/.cloudflared/config.yml"
+fi
+
 if command -v cloudflared &> /dev/null; then
-  rm -f "$TUNNEL_LOG"
-
-  cloudflared tunnel \
-    --url http://127.0.0.1:5173 \
-    --no-autoupdate \
-    > "$TUNNEL_LOG" 2>&1 &
-
-  CLOUDFLARED_PID=$!
-
-  for i in $(seq 1 30); do
-    TUNNEL_URL=$(grep -o \
-      'https://[a-zA-Z0-9.-]*\.trycloudflare\.com' \
-      "$TUNNEL_LOG" | head -1)
-
-    [ -n "$TUNNEL_URL" ] && break
-    sleep 1
-  done
-
-  if [ -n "$TUNNEL_URL" ]; then
-    MODE="tunnel"
-  else
-    kill $CLOUDFLARED_PID 2>/dev/null
-  fi
+    rm -f "$TUNNEL_LOG"
+    
+    # Usar el túnel configurado con el dominio personalizado
+    cloudflared tunnel run $CLOUDFLARED_CONFIG \
+      > "$TUNNEL_LOG" 2>&1 &
+    
+    CLOUDFLARED_PID=$!
+    
+    # Verificar que el túnel esté corriendo
+    sleep 5
+    
+    # Verificar si el proceso sigue activo
+    if kill -0 $CLOUDFLARED_PID 2>/dev/null; then
+        MODE="tunnel"
+        TUNNEL_URL="https://uocra-las-heras.org"
+    else
+        echo -e "${RED}❌ ERROR: El túnel no pudo iniciar${NC}"
+        tail -10 "$TUNNEL_LOG" 2>/dev/null | sed 's/^/  /'
+    fi
 fi
 
 # ─────────────────────────────────────

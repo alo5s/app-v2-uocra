@@ -27,7 +27,7 @@ from app.schemas.schemas import (
     CVCreate, CVUpdate, CVResponse, CVPublicCreate, MessageResponse
 )
 from app.utils.pdf_extractor import extraer_datos_cv, guardar_pdf_temp, limpiar_temp
-from app.utils.validators import sanitize_input, validate_file_size, allowed_file, validate_pdf_content
+from app.utils.validators import sanitize_input, validate_file_size, allowed_file, validate_pdf_content, validate_image_content
 
 router = APIRouter(prefix="/cvs", tags=["cvs"])
 

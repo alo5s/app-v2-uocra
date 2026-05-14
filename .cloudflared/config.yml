@@ -1,0 +1,15 @@
+tunnel: cdc1c9da-63b3-4604-91de-455e14e85e8a
+
+credentials-file: /home/alos/.cloudflared/cdc1c9da-63b3-4604-91de-455e14e85e8a.json
+
+ingress:
+  - hostname: uocra-las-heras.org
+    service: http://localhost:5173
+
+  - hostname: www.uocra-las-heras.org
+    service: http://localhost:5173
+
+  - hostname: api.uocra-las-heras.org
+    service: http://localhost:8000
+
+  - service: http_status:404
