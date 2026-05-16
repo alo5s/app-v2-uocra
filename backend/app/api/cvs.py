@@ -555,6 +555,7 @@ def crear_cv_publico(
     fecha_nacimiento: str = Form(None),
     telefono: str = Form(None),
     email: str = Form(None),
+    domicilio: str = Form(None),
     oficios: str = Form(None),
     file: UploadFile = File(None),
     foto: UploadFile = File(None),
@@ -614,6 +615,7 @@ def crear_cv_publico(
         fecha_nacimiento=fecha_nacimiento,
         telefono=telefono,
         email=email,
+        domicilio=domicilio,
         oficios=oficios,
         foto=foto_final,
         estado='pendiente',
@@ -638,6 +640,12 @@ def crear_cv_publico(
 def get_lista_oficios():
     from app.utils.oficios import get_all_oficios
     return get_all_oficios()
+
+
+@router.get("/oficios/categorias")
+def get_oficios_categorias():
+    from app.utils.oficios import get_categorias
+    return get_categorias()
 
 
 @router.post("/extraer", response_model=dict)
@@ -665,6 +673,24 @@ def extraer_datos_pdf(
         }
     finally:
         limpiar_temp(temp_path)
+    
+    campos = {
+        "Nombre": datos.get("nombre"),
+        "DNI": datos.get("dni"),
+        "Fecha Nac.": datos.get("fecha_nacimiento"),
+        "Teléfono": datos.get("telefono"),
+        "Domicilio": datos.get("domicilio"),
+        "Email": datos.get("email"),
+    }
+    encontrados = sum(1 for v in campos.values() if v)
+    print(f"\n{'='*50}")
+    print(f"📄 Extracción: {file.filename}")
+    print(f"   Resultado: {encontrados}/6 campos encontrados")
+    for nombre, valor in campos.items():
+        icono = '✅' if valor else '❌'
+        print(f"   {icono} {nombre}: {valor if valor else '—'}")
+    print(f"   🔧 Oficios: {datos.get('oficios_detectados', []) or '—'}")
+    print(f"{'='*50}\n")
     
     return datos
 

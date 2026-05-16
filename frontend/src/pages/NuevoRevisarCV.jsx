@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cvsAPI } from '../api';
 import { useToastStore } from '../store/uiStore';
 import { Button, Card, CardBody } from '../components/ui';
+import OficioSelector from '../components/forms/OficioSelector';
 
 export default function RevisarCV() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToastStore();
   const [loading, setLoading] = useState(false);
-  const [oficios, setOficios] = useState([]);
   const [showPdf, setShowPdf] = useState(true);
 
   const locationState = location.state || {};
@@ -32,28 +32,16 @@ export default function RevisarCV() {
   });
 
   const [oficiosSeleccionados, setOficiosSeleccionados] = useState(datos?.oficios_detectados || []);
-  const [oficioInput, setOficioInput] = useState('');
 
   const [domicilioOpcion, setDomicilioOpcion] = useState(
-    datos?.domicilio_opciones?.length > 1 ? datos.domicilio : ''
+    datos?.domicilios_opciones?.length > 1 ? datos.domicilio : ''
   );
   const [telefonoOpcion, setTelefonoOpcion] = useState(
-    datos?.telefono_opciones?.length > 1 ? datos.telefono : ''
+    datos?.telefonos_opciones?.length > 1 ? datos.telefono : ''
   );
 
   const [foto, setFoto] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
-
-  useEffect(() => {
-    fetchOficios();
-  }, []);
-
-  const fetchOficios = async () => {
-    try {
-      const res = await cvsAPI.getOficios();
-      setOficios(res.data);
-    } catch (e) {}
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -61,25 +49,6 @@ export default function RevisarCV() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const handleAddOficio = () => {
-    const oficio = oficioInput.trim();
-    if (oficio && !oficiosSeleccionados.includes(oficio)) {
-      setOficiosSeleccionados([...oficiosSeleccionados, oficio]);
-      setOficioInput('');
-    }
-  };
-
-  const handleRemoveOficio = (oficio) => {
-    setOficiosSeleccionados(oficiosSeleccionados.filter(o => o !== oficio));
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddOficio();
-    }
   };
 
   const handleFotoChange = (e) => {
@@ -421,45 +390,10 @@ export default function RevisarCV() {
                   Datos Laborales
                 </h2>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Oficios *
-                  </label>
-                  <div className="flex gap-2 mb-2">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={oficioInput}
-                        onChange={(e) => setOficioInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3c72]/50"
-                        placeholder="Escribir oficio y presionar Enter"
-                        list="oficios-list-revisar"
-                      />
-                      <datalist id="oficios-list-revisar">
-                        {oficios.map(oficio => (
-                          <option key={oficio} value={oficio} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <Button type="button" variant="secondary" onClick={handleAddOficio}>
-                      <i className="bi bi-plus-lg"></i> Agregar
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 p-3 bg-gray-100 rounded-lg min-h-[50px]">
-                    {oficiosSeleccionados.length === 0 ? (
-                      <span className="text-gray-500 text-sm">Selecciona al menos un oficio</span>
-                    ) : (
-                      oficiosSeleccionados.map((oficio, idx) => (
-                        <span
-                          key={idx}
-                          className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-full cursor-pointer hover:bg-red-600 transition-colors"
-                          onClick={() => handleRemoveOficio(oficio)}
-                        >
-                          {oficio} <i className="bi bi-x"></i>
-                        </span>
-                      ))
-                    )}
-                  </div>
+                  <OficioSelector
+                    selected={oficiosSeleccionados}
+                    onChange={setOficiosSeleccionados}
+                  />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

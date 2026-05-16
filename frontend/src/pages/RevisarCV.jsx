@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { cvsAPI } from '../api';
 import { useToastStore } from '../store/uiStore';
 import { Button, Card, CardBody, Loader } from '../components/ui';
+import OficioSelector from '../components/forms/OficioSelector';
 
 export default function RevisarCV() {
   const { id } = useParams();
@@ -15,9 +16,7 @@ export default function RevisarCV() {
   const [pendingUrl, setPendingUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [oficios, setOficios] = useState([]);
   const [oficiosSeleccionados, setOficiosSeleccionados] = useState([]);
-  const [oficioInput, setOficioInput] = useState('');
   const [cvData, setCvData] = useState(null);
   const [showPdfModal, setShowPdfModal] = useState(false);
   
@@ -69,8 +68,7 @@ export default function RevisarCV() {
     } else {
       fetchData();
     }
-    fetchOficios();
-  }, [id]);
+    }, [id]);
 
   const fetchData = async () => {
     if (isNewCV) {
@@ -109,32 +107,6 @@ export default function RevisarCV() {
       navigate('/cvs');
     } finally {
       setLoadingData(false);
-    }
-  };
-
-  const fetchOficios = async () => {
-    try {
-      const res = await cvsAPI.getOficios();
-      setOficios(res.data);
-    } catch (e) {}
-  };
-
-  const handleAddOficio = () => {
-    const oficio = oficioInput.trim();
-    if (oficio && !oficiosSeleccionados.includes(oficio)) {
-      setOficiosSeleccionados([...oficiosSeleccionados, oficio]);
-      setOficioInput('');
-    }
-  };
-
-  const handleRemoveOficio = (oficio) => {
-    setOficiosSeleccionados(oficiosSeleccionados.filter(o => o !== oficio));
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddOficio();
     }
   };
 
@@ -487,70 +459,10 @@ export default function RevisarCV() {
             </h2>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Oficios * (Selecciona o escribe y presiona Enter)
-              </label>
-              <div className="flex gap-2 mb-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={oficioInput}
-                    onChange={(e) => setOficioInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3c72]/50 focus:border-[#1e3c72]"
-                    placeholder="Escribir oficio y presionar Enter"
-                    list="oficios-list"
-                  />
-                  <datalist id="oficios-list">
-                    {oficios.map(oficio => (
-                      <option key={oficio} value={oficio} />
-                    ))}
-                  </datalist>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddOficio}
-                >
-                  <i className="bi bi-plus-lg"></i> Agregar
-                </Button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 p-3 bg-gray-100 rounded-lg min-h-[50px]">
-                {oficiosSeleccionados.length === 0 ? (
-                  <span className="text-gray-500 text-sm">Selecciona al menos un oficio</span>
-                ) : (
-                  oficiosSeleccionados.map((oficio, idx) => (
-                    <span 
-                      key={idx} 
-                      className="flex items-center gap-1 bg-[#1e3c72] text-white px-3 py-1 rounded-full cursor-pointer hover:bg-red-600 transition-colors"
-                      onClick={() => handleRemoveOficio(oficio)}
-                    >
-                      {oficio} <i className="bi bi-x"></i>
-                    </span>
-                  ))
-                )}
-              </div>
-              
-              <div className="mt-3">
-                <p className="text-sm text-gray-500 mb-2">Sugeridos (click para agregar):</p>
-                <div className="flex flex-wrap gap-2">
-                  {oficios.slice(0, 12).map(oficio => (
-                    <button
-                      key={oficio}
-                      type="button"
-                      onClick={() => {
-                        if (!oficiosSeleccionados.includes(oficio)) {
-                          setOficiosSeleccionados([...oficiosSeleccionados, oficio]);
-                        }
-                      }}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      + {oficio}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <OficioSelector
+                selected={oficiosSeleccionados}
+                onChange={setOficiosSeleccionados}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

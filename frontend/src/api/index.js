@@ -74,6 +74,7 @@ export const cvsAPI = {
   aprobar: (id) => api.post(`/cvs/${id}/aprobar`),
   rechazar: (id) => api.post(`/cvs/${id}/rechazar`),
   getOficios: () => api.get('/cvs/oficios/list'),
+  getOficiosCategorias: () => api.get('/cvs/oficios/categorias'),
   getEmpresas: (id) => api.get(`/cvs/${id}/empresas`),
   createPublic: (data) => apiPublic.post('/cvs/public', data, {
     headers: { 'Content-Type': 'multipart/form-data' },

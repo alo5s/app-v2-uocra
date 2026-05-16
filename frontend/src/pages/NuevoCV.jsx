@@ -27,30 +27,7 @@ export default function NuevoCV() {
       }
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
-
-      if (modoExtraccion === 'automatico') {
-        extraerDatosDelPDF(file);
-      } else {
-        navigate('/cv/revisar', { 
-          state: { 
-            file: file,
-            previewUrl: URL.createObjectURL(file),
-            datos: {
-              nombre: '',
-              dni: '',
-              fecha_nacimiento: '',
-              domicilio: '',
-              email: '',
-              telefono: '',
-              oficios_detectados: [],
-              edad: '',
-              domicilio_opciones: [],
-              telefono_opciones: [],
-            },
-            modo: modoExtraccion,
-          } 
-        });
-      }
+      // Esperar a que el usuario clickee "Extraer" o "Completar manualmente"
     }
   };
 
@@ -98,29 +75,6 @@ export default function NuevoCV() {
 
   const toggleModoExtraccion = (nuevoModo) => {
     setModoExtraccion(nuevoModo);
-    if (nuevoModo === 'automatico' && selectedFile) {
-      extraerDatosDelPDF(selectedFile);
-    } else if (nuevoModo === 'manual' && selectedFile) {
-      navigate('/cv/revisar', { 
-        state: { 
-          file: selectedFile,
-          previewUrl: previewUrl,
-          datos: {
-            nombre: '',
-            dni: '',
-            fecha_nacimiento: '',
-            domicilio: '',
-            email: '',
-            telefono: '',
-            oficios_detectados: [],
-            edad: '',
-            domicilio_opciones: [],
-            telefono_opciones: [],
-          },
-          modo: nuevoModo,
-        } 
-      });
-    }
   };
 
   return (
@@ -197,35 +151,62 @@ export default function NuevoCV() {
                     title="PDF Preview"
                   />
                   <div className="flex gap-2 flex-wrap justify-center">
-                    {modoExtraccion === 'automatico' && selectedFile && !extrayendo && (
-                      <button 
+                    {selectedFile && !extrayendo && (
+                      <button
                         type="button"
-                        onClick={() => extraerDatosDelPDF(selectedFile)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                        onClick={() => {
+                          if (modoExtraccion === 'automatico') {
+                            extraerDatosDelPDF(selectedFile);
+                          } else {
+                            navigate('/cv/revisar', {
+                              state: {
+                                file: selectedFile,
+                                previewUrl: previewUrl,
+                                datos: {
+                                  nombre: '', dni: '', fecha_nacimiento: '',
+                                  domicilio: '', email: '', telefono: '',
+                                  oficios_detectados: [], edad: '',
+                                  domicilio_opciones: [], telefono_opciones: [],
+                                },
+                                modo: modoExtraccion,
+                              }
+                            });
+                          }
+                        }}
+                        className={`px-4 py-2 text-white rounded-lg flex items-center gap-2 ${
+                          modoExtraccion === 'automatico'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-[#1e3c72] hover:bg-[#2a5298]'
+                        }`}
                       >
-                        <i className="bi bi-robot"></i>
-                        Extraer datos del PDF
+                        {modoExtraccion === 'automatico' ? (
+                          <><i className="bi bi-robot"></i> Extraer datos del PDF</>
+                        ) : (
+                          <><i className="bi bi-pencil"></i> Completar manualmente</>
+                        )}
                       </button>
                     )}
                     {extrayendo && (
                       <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg w-full">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-                          <span className="text-gray-700 font-medium">Extrayendo datos del CV...</span>
+                          <span className="text-gray-700 font-medium">Extrayendo datos del PDF...</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div className="h-full bg-blue-600 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full animate-pulse" style={{ width: '70%' }}></div>
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">Esto puede tardar unos segundos</p>
+                        <p className="text-sm text-gray-500 mt-3">Leyendo y analizando el contenido del PDF</p>
                       </div>
                     )}
-                    <button 
-                      type="button" 
-                      onClick={removeFile}
-                      className="text-red-600 hover:text-red-700 font-medium"
-                    >
-                      Eliminar
-                    </button>
+                    {selectedFile && !extrayendo && (
+                      <button 
+                        type="button" 
+                        onClick={removeFile}
+                        className="text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -255,10 +236,9 @@ export default function NuevoCV() {
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-700">
             <i className="bi bi-info-circle me-2"></i>
-            Seleccioná el modo de carga y subí el CV en PDF. 
-            {modoExtraccion === 'automatico' 
-              ? 'Los datos se extraerán automáticamente y podrás revisarlos en la siguiente pantalla.' 
-              : 'Completá los datos manualmente en la siguiente pantalla.'}
+            {modoExtraccion === 'automatico'
+              ? 'Subí el PDF y hacé click en "Extraer datos del PDF". Los datos se completarán automáticamente y podrás revisarlos.'
+              : 'Subí el PDF y hacé click en "Completar manualmente" para llenar los datos vos mismo.'}
           </p>
         </div>
       </div>

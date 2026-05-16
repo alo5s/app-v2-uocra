@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: uocra
+      POSTGRES_USER: uocra
+      POSTGRES_PASSWORD: uocra_secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uocra"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static_uploads:/app/static
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://uocra:uocra_secret@db:5432/uocra
+      SECRET_KEY: ${SECRET_KEY?SECRET_KEY not set}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD?ADMIN_PASSWORD not set}
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:80,https://uocra-las-heras.org,https://api.uocra-las-heras.org
+      DEBUG: "true"
+      BASE_URL: https://uocra-las-heras.org
+      FRONTEND_URL: https://uocra-las-heras.org
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "10"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: "host"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./.cloudflared:/home/nonroot/.cloudflared:ro
+    command: tunnel --config /home/nonroot/.cloudflared/config.yml run
+
+volumes:
+  postgres_data:
+  static_uploads:

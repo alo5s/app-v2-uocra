@@ -49,5 +49,7 @@ backend/server.log
 Thumbs.db
 
 # Docker
-.dockerignore
 .docker.env
+
+# Cloudflare tunnel credentials (NUNCA subir)
+.cloudflared/*.json

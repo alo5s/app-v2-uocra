@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import os
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, run_migrations
 from app.core.error_handler import setup_error_handlers
 from app.models.user import User
 from app.api import auth, cvs, empresas, notas, dashboard, actividad, system, public
@@ -19,11 +19,9 @@ os.makedirs("static/temp", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     
     from app.core.database import SessionLocal
-    from app.core.security import get_password_hash
-    
     db = SessionLocal()
     try:
         admin_username = settings.ADMIN_USERNAME

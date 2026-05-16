@@ -1,9 +1,8 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Configuración del engine según el tipo de base de datos
 engine_args = {}
 
 if settings.DATABASE_URL.startswith("sqlite"):
@@ -29,3 +28,32 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def run_migrations():
+    import os
+    from alembic.config import Config
+    from alembic import command
+    import sqlalchemy
+
+    alembic_ini = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "alembic.ini")
+    alembic_cfg = Config(alembic_ini)
+
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    has_alembic = "alembic_version" in tables
+
+    if not has_alembic and len(tables) > 0:
+        command.stamp(alembic_cfg, "head")
+        print(f"Database already has {len(tables)} tables. Stamped as up-to-date.")
+        return
+
+    try:
+        command.upgrade(alembic_cfg, "head")
+        print("Database migrations up to date.")
+    except sqlalchemy.exc.OperationalError as e:
+        if "already exists" in str(e):
+            command.stamp(alembic_cfg, "head")
+            print(f"Tables already exist. Stamped as up-to-date.")
+        else:
+            raise

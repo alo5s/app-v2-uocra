@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { cvsAPI, empresasAPI } from '../api';
+import { cvsAPI } from '../api';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import OficioSelector from '../components/forms/OficioSelector';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import es from 'date-fns/locale/es';
+import 'react-datepicker/dist/react-datepicker.css';
+registerLocale('es', es);
 
 export default function SubirCV() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [oficios, setOficios] = useState([]);
 const [searchParams] = useSearchParams();
 const navigate = useNavigate();
 const { user: authUser } = useAuthStore();
@@ -27,10 +31,7 @@ const { user: authUser } = useAuthStore();
   const [pdfFile, setPdfFile] = useState(null);
   const [fotoFile, setFotoFile] = useState(null);
   const [selectedOficios, setSelectedOficios] = useState([]);
-
-  useEffect(() => {
-    fetchOficios();
-  }, []);
+  const [fechaDate, setFechaDate] = useState(null);
 
   // Validar si es admin o validar token del QR
   useEffect(() => {
@@ -98,11 +99,27 @@ const { user: authUser } = useAuthStore();
         setSelectedOficios(parsed.selectedOficios || []);
         setPdfFile(parsed.pdfName ? { name: parsed.pdfName } : null);
         setFotoFile(parsed.fotoName ? { name: parsed.fotoName } : null);
+        if (parsed.form?.fecha_nacimiento) {
+          const partes = parsed.form.fecha_nacimiento.split('-');
+          if (partes.length === 3) {
+            setFechaDate(new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2])));
+          }
+        }
       } catch (e) {
         console.error('Error restoring data:', e);
       }
     }
   }, []);
+
+  // Sincronizar fechaDate -> form.fecha_nacimiento
+  useEffect(() => {
+    if (fechaDate && !isNaN(fechaDate.getTime())) {
+      const anio = fechaDate.getFullYear();
+      const mes = String(fechaDate.getMonth() + 1).padStart(2, '0');
+      const dia = String(fechaDate.getDate()).padStart(2, '0');
+      setForm(prev => ({ ...prev, fecha_nacimiento: `${anio}-${mes}-${dia}` }));
+    }
+  }, [fechaDate]);
 
   // Guardar datos en sessionStorage automáticamente
   useEffect(() => {
@@ -118,17 +135,6 @@ const { user: authUser } = useAuthStore();
   // Limpiar sessionStorage al enviar exitosamente
   const clearSavedData = () => {
     sessionStorage.removeItem('subirCV_datos');
-  };
-
-  const fetchOficios = async () => {
-    try {
-      const res = await cvsAPI.getOficios();
-      setOficios(res.data || []);
-    } catch (e) {
-      console.error('Error cargando oficios:', e);
-      // Fallback con lista básica
-      setOficios(['Albañil', 'Pintor', 'Electricista', 'Plomero', 'Carpintero', 'Herrero', 'Soldador', 'Mecánico', 'Gasista', 'Jardinero', 'Técnico HVAC', 'Drywall', 'Azulejista']);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -209,17 +215,6 @@ const { user: authUser } = useAuthStore();
       }
       setFotoFile(file);
     }
-  };
-
-  const addOficio = (oficio) => {
-    oficio = oficio.trim();
-    if (oficio && !selectedOficios.includes(oficio)) {
-      setSelectedOficios([...selectedOficios, oficio]);
-    }
-  };
-
-  const removeOficio = (oficio) => {
-    setSelectedOficios(selectedOficios.filter(o => o !== oficio));
   };
 
   if (submitted) {
@@ -364,12 +359,21 @@ const { user: authUser } = useAuthStore();
               </div>
               <div>
                 <label className="block font-semibold text-gray-800 mb-2">Fecha de Nacimiento</label>
-                <input
-                  type="date"
-                  name="fecha_nacimiento"
-                  value={form.fecha_nacimiento}
-                  onChange={handleChange}
+                <DatePicker
+                  selected={fechaDate}
+                  onChange={date => setFechaDate(date)}
+                  dateFormat="dd/MM/yyyy"
+                  locale="es"
+                  placeholderText="Seleccionar fecha"
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3c72]/50 focus:border-[#1e3c72] transition-all duration-300"
+                  wrapperClassName="w-full"
+                  popperPlacement="bottom"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  yearDropdownItemNumber={100}
+                  minDate={new Date(1940, 0, 1)}
+                  maxDate={new Date()}
                 />
               </div>
             </div>
@@ -412,57 +416,10 @@ const { user: authUser } = useAuthStore();
               />
             </div>
 
-            <div>
-              <label className="block font-semibold text-gray-800 mb-2">Oficio <span className="text-red-600">*</span></label>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  id="oficioInput"
-                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3c72]/50 focus:border-[#1e3c72] transition-all duration-300"
-                  placeholder="Escribir oficio"
-                  list="oficios-list"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addOficio(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById('oficioInput');
-                    addOficio(input.value);
-                    input.value = '';
-                  }}
-                  className="px-4 bg-[#1e3c72] text-white rounded-xl hover:bg-[#2a5298] transition-colors"
-                >
-                  <i className="bi bi-plus-lg"></i>
-                </button>
-              </div>
-              <datalist id="oficios-list">
-                {oficios.map((oficio, idx) => (
-                  <option key={idx} value={oficio} />
-                ))}
-              </datalist>
-              
-              <div className="flex flex-wrap gap-3 mt-4 min-h-[50px] p-4 bg-gray-50 rounded-xl">
-                {selectedOficios.length === 0 ? (
-                  <span className="text-gray-400 text-sm">Selecciona oficios</span>
-                ) : (
-                  selectedOficios.map((oficio) => (
-                    <span 
-                      key={oficio} 
-                      onClick={() => removeOficio(oficio)}
-                      className="inline-flex items-center gap-2 bg-blue-100 text-[#1e3c72] px-4 py-2 rounded-full text-sm font-medium cursor-pointer hover:bg-red-100 hover:text-red-600 transition-colors"
-                    >
-                      {oficio} <span className="font-bold">&times;</span>
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
+            <OficioSelector
+              selected={selectedOficios}
+              onChange={setSelectedOficios}
+            />
 
             <div>
               <label className="block font-semibold text-gray-800 mb-2">CV (PDF o Imagen) <span className="text-red-600">*</span></label>

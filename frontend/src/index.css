@@ -99,4 +99,66 @@
   animation-delay: 2s;
 }
 
-/* No more custom CSS needed - Tailwind handles the rest! */
+/* React DatePicker overrides */
+.react-datepicker {
+  font-family: inherit !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+.react-datepicker__header {
+  background: #1e3c72 !important;
+  border-bottom: none !important;
+  border-radius: 10px 10px 0 0 !important;
+  padding-top: 12px !important;
+}
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white !important;
+  font-weight: 600 !important;
+}
+.react-datepicker__navigation-icon::before {
+  border-color: white !important;
+}
+.react-datepicker__day--selected {
+  background: #1e3c72 !important;
+  border-radius: 8px !important;
+}
+.react-datepicker__day:hover {
+  background: #e8edf5 !important;
+  border-radius: 8px !important;
+}
+.react-datepicker__day--keyboard-selected {
+  background: #2a5298 !important;
+  border-radius: 8px !important;
+}
+.react-datepicker__day--today {
+  font-weight: 700 !important;
+  color: #1e3c72 !important;
+}
+.react-datepicker__triangle {
+  display: none !important;
+}
+.react-datepicker__year-dropdown-container select,
+.react-datepicker__month-dropdown-container select {
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: rgba(255,255,255,0.15) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+}
+.react-datepicker__year-dropdown-container select option,
+.react-datepicker__month-dropdown-container select option {
+  color: #1f2937 !important;
+  background: white !important;
+}
+.react-datepicker__input-container input {
+  width: 100% !important;
+}
+/* Hide the native calendar icon on date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
